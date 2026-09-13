@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mtindi &amp; Juice Shop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F3F6F1;
+    --panel:#FFFFFF;
+    --ink:#2A2321;
+    --ink-soft:#6B6259;
+    --accent:#E2802B;
+    --accent-ink:#7A3E0C;
+    --berry:#B23A63;
+    --leaf:#4C8B5B;
+    --line:#DCE3DA;
+    --danger:#B33A3A;
+    --radius:10px;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-feature-settings:"tnum" 1;
+  }
+  h1,h2,h3,.brand{ font-family:'Space Grotesk', sans-serif; letter-spacing:-0.01em; }
+  .app{ display:flex; min-height:100vh; }
+
+  /* ---- Sidebar ---- */
+  .sidebar{
+    width:220px; flex-shrink:0; background:var(--panel);
+    border-right:1px solid var(--line);
+    display:flex; flex-direction:column; padding:20px 14px;
+  }
+  .brand{ font-size:1.15rem; font-weight:700; padding:0 8px 20px; line-height:1.25; }
+  .brand span{ color:var(--accent); }
+  nav{ display:flex; flex-direction:column; gap:4px; }
+  nav button{
+    all:unset; cursor:pointer; padding:10px 12px; border-radius:var(--radius);
+    font-size:0.95rem; color:var(--ink-soft); font-weight:500;
+  }
+  nav button:hover{ background:var(--bg); color:var(--ink); }
+  nav button.active{ background:#FBEEE0; color:var(--accent-ink); }
+  .sidebar-foot{ margin-top:auto; padding:12px 8px 0; border-top:1px solid var(--line); }
+  .sidebar-foot label{ font-size:0.75rem; color:var(--ink-soft); display:block; margin-bottom:6px; }
+  .sidebar-foot input{ width:100%; }
+
+  /* ---- Content ---- */
+  main{ flex:1; padding:28px 32px; max-width:1100px; }
+  .page{ display:none; }
+  .page.active{ display:block; }
+  .page-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:18px; }
+  .page-head h1{ font-size:1.5rem; margin:0; }
+  .muted{ color:var(--ink-soft); font-size:0.9rem; }
+
+  /* ---- Cards / grid ---- */
+  .cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:22px; }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; }
+  .card .label{ font-size:0.8rem; color:var(--ink-soft); margin-bottom:6px; }
+  .card .value{ font-size:1.5rem; font-weight:600; font-family:'Space Grotesk',sans-serif; }
+  .card .sub{ font-size:0.78rem; color:var(--ink-soft); margin-top:4px; }
+
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; margin-bottom:20px; }
+  .panel h3{ margin:0 0 12px; font-size:1.05rem; }
+
+  table{ width:100%; border-collapse:collapse; font-size:0.9rem; }
+  th,td{ text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); }
+  th{ color:var(--ink-soft); font-weight:500; font-size:0.78rem; }
+  tr:last-child td{ border-bottom:none; }
+  .num{ text-align:right; font-variant-numeric:tabular-nums; }
+  .tag{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:0.72rem; font-weight:500; }
+  .tag.low{ background:#FCEBEB; color:var(--danger); }
+  .tag.ok{ background:#E9F3EA; color:var(--leaf); }
+
+  /* ---- Forms ---- */
+  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field.full{ grid-column:1 / -1; }
+  .field label{ font-size:0.82rem; color:var(--ink-soft); }
+  input, select{
+    font-family:inherit; font-size:0.95rem; padding:9px 10px;
+    border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink);
+  }
+  input:focus, select:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .btn{
+    all:unset; cursor:pointer; display:inline-block; text-align:center;
+    padding:10px 18px; border-radius:8px; font-weight:600; font-size:0.92rem;
+  }
+  .btn-primary{ background:var(--accent); color:#fff; }
+  .btn-primary:hover{ background:#C96E1F; }
+  .btn-ghost{ background:transparent; color:var(--ink-soft); border:1px solid var(--line); }
+  .btn-ghost:hover{ color:var(--ink); }
+  .btn-danger{ color:var(--danger); }
+  .btn[disabled]{ opacity:0.5; cursor:not-allowed; }
+
+  .preview-line{ display:flex; justify-content:space-between; padding:4px 0; font-size:0.88rem; color:var(--ink-soft); }
+  .preview-line b{ color:var(--ink); font-weight:600; }
+
+  /* ---- Sales page ---- */
+  .sales-layout{ display:grid; grid-template-columns:1.3fr 1fr; gap:20px; align-items:start; }
+  .type-toggle{ display:flex; gap:8px; margin-bottom:14px; }
+  .type-toggle button{
+    all:unset; cursor:pointer; flex:1; text-align:center; padding:9px; border-radius:8px;
+    border:1px solid var(--line); font-weight:500; font-size:0.88rem; color:var(--ink-soft);
+  }
+  .type-toggle button.active.wholesale{ background:#FBEEE0; border-color:var(--accent); color:var(--accent-ink); }
+  .type-toggle button.active.retail{ background:#F3E3EA; border-color:var(--berry); color:var(--berry); }
+  .add-row{ display:flex; gap:8px; align-items:end; margin-bottom:14px; }
+  .add-row .field{ flex:1; }
+  .cart-total{ display:flex; justify-content:space-between; align-items:baseline; padding-top:12px; margin-top:8px; border-top:1px solid var(--line); }
+  .cart-total .value{ font-size:1.4rem; font-weight:700; font-family:'Space Grotesk',sans-serif; }
+
+  /* ---- Reports ---- */
+  .tabs{ display:flex; gap:8px; margin-bottom:16px; }
+  .tabs button{ all:unset; cursor:pointer; padding:8px 16px; border-radius:999px; font-size:0.88rem; font-weight:500; color:var(--ink-soft); border:1px solid var(--line); }
+  .tabs button.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .bars{ display:flex; align-items:flex-end; gap:6px; height:120px; margin:10px 0 6px; }
+  .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .bar{ width:100%; background:var(--accent); border-radius:4px 4px 0 0; min-height:2px; }
+  .bar-label{ font-size:0.65rem; color:var(--ink-soft); margin-top:4px; white-space:nowrap; }
+
+  /* ---- Home hero carousel ---- */
+  .hero{ position:relative; height:220px; border-radius:14px; overflow:hidden; margin-bottom:22px; }
+  .slide{
+    position:absolute; inset:0; opacity:0; transition:opacity 0.6s ease;
+    display:flex; align-items:center; padding:0 34px; color:#fff;
+  }
+  .slide.active{ opacity:1; }
+  .slide .txt{ position:relative; z-index:2; max-width:60%; }
+  .slide .txt h2{ font-size:1.5rem; margin:0 0 6px; }
+  .slide .txt p{ margin:0; opacity:0.9; font-size:0.9rem; }
+  .slide svg{ position:absolute; right:20px; bottom:-10px; height:220px; opacity:0.9; }
+  .dots{ position:absolute; bottom:12px; left:34px; display:flex; gap:6px; z-index:3; }
+  .dot{ width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.5); }
+  .dot.active{ background:#fff; width:16px; border-radius:3px; }
+
+  .empty{ color:var(--ink-soft); font-size:0.88rem; padding:10px 0; }
+  .toast{
+    position:fixed; bottom:22px; right:26px; background:var(--ink); color:#fff;
+    padding:12px 18px; border-radius:8px; font-size:0.88rem; max-width:340px;
+    opacity:0; transform:translateY(8px); transition:all 0.25s ease; pointer-events:none; z-index:50;
+  }
+  .toast.show{ opacity:1; transform:translateY(0); }
+  .toast.error{ background:var(--danger); }
+
+  @media (max-width:800px){
+    .app{ flex-direction:column; }
+    .sidebar{ width:100%; flex-direction:row; align-items:center; overflow-x:auto; }
+    .brand{ padding:0 12px 0 0; }
+    nav{ flex-direction:row; }
+    .sidebar-foot{ display:none; }
+    main{ padding:18px; }
+    .form-grid, .sales-layout{ grid-template-columns:1fr; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .slide{ transition:none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">Mtindi <span>&amp;</span> Juice Shop</div>
+    <nav>
+      <button data-page="home" class="active">Home</button>
+      <button data-page="register">Register stock</button>
+      <button data-page="sales">Sell</button>
+      <button data-page="reports">Reports</button>
+    </nav>
+    <div class="sidebar-foot">
+      <label for="staffName">Staff name</label>
+      <input id="staffName" placeholder="e.g. Amina" />
+    </div>
+  </aside>
+
+  <main>
+    <!-- HOME -->
+    <section id="page-home" class="page active">
+      <div class="hero" id="hero"></div>
+
+      <div class="cards" id="homeCards"></div>
+
+      <div class="panel">
+        <h3>Running low</h3>
+        <table>
+          <thead><tr><th>Product</th><th class="num">In stock</th><th></th></tr></thead>
+          <tbody id="lowStockBody"><tr><td colspan="3" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- REGISTER STOCK -->
+    <section id="page-register" class="page">
+      <div class="page-head">
+        <h1>Register new stock</h1>
+        <span class="muted">Goods received from the main company</span>
+      </div>
+
+      <div class="panel">
+        <div class="form-grid">
+          <div class="field">
+            <label for="regProduct">Product</label>
+            <select id="regProduct"></select>
+          </div>
+          <div class="field">
+            <label for="regUnit">Unit</label>
+            <input id="regUnit" placeholder="pcs, box, bottle…" />
+          </div>
+          <div class="field">
+            <label for="regQty">Quantity received</label>
+            <input id="regQty" type="number" min="0" step="1" />
+          </div>
+          <div class="field">
+            <label for="regBuy">Buying price (per unit)</label>
+            <input id="regBuy" type="number" min="0" step="0.01" />
+          </div>
+          <div class="field">
+            <label for="regSellDisc">Selling price — with discount (wholesale)</label>
+            <input id="regSellDisc" type="number" min="0" step="0.01" />
+          </div>
+          <div class="field">
+            <label for="regSellFull">Selling price — without discount (retail)</label>
+            <input id="regSellFull" type="number" min="0" step="0.01" />
+          </div>
+        </div>
+
+        <div style="margin-top:6px;">
+          <div class="preview-line"><span>Total value at discount price</span><b id="prevDisc">0</b></div>
+          <div class="preview-line"><span>Total value at full price</span><b id="prevFull">0</b></div>
+        </div>
+
+        <div style="margin-top:14px; display:flex; gap:10px;">
+          <button class="btn btn-primary" id="regSubmit">Save stock</button>
+          <button class="btn btn-ghost" id="regNewProduct">This is a new product, not on the list</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Current stock levels</h3>
+        <table>
+          <thead><tr><th>Product</th><th>Unit</th><th class="num">Stock</th><th class="num">Buy price</th><th class="num">Sell (disc.)</th><th class="num">Sell (full)</th></tr></thead>
+          <tbody id="productsBody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SALES -->
+    <section id="page-sales" class="page">
+      <div class="page-head">
+        <h1>Sell</h1>
+        <span class="muted">Sales deduct stock automatically once completed</span>
+      </div>
+
+      <div class="sales-layout">
+        <div class="panel">
+          <div class="type-toggle">
+            <button id="typeWholesale" class="active wholesale">Wholesale (discount price)</button>
+            <button id="typeRetail" class="retail">Retail (full price)</button>
+          </div>
+
+          <div class="add-row">
+            <div class="field">
+              <label for="saleProduct">Product</label>
+              <select id="saleProduct"></select>
+            </div>
+            <div class="field" style="max-width:100px;">
+              <label for="saleQty">Qty</label>
+              <input id="saleQty" type="number" min="1" step="1" value="1" />
+            </div>
+            <button class="btn btn-primary" id="addToCart">Add to cart</button>
+          </div>
+
+          <table>
+            <thead><tr><th>Product</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Line total</th><th></th></tr></thead>
+            <tbody id="cartBody"><tr><td colspan="5" class="empty">Cart is empty</td></tr></tbody>
+          </table>
+
+          <div class="cart-total">
+            <span class="muted">Total</span>
+            <span class="value" id="cartTotal">0</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Complete sale</h3>
+          <p class="muted" style="margin-top:-6px;">Prices are set automatically from the customer type above. You can still edit stock levels afterward from Register stock.</p>
+          <button class="btn btn-primary" id="checkoutBtn" style="width:100%; margin-top:12px;">Complete sale</button>
+          <div id="lastReceipt" style="margin-top:16px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- REPORTS -->
+    <section id="page-reports" class="page">
+      <div class="page-head">
+        <h1>Reports</h1>
+        <span class="muted" id="reportRange"></span>
+      </div>
+
+      <div class="tabs">
+        <button data-period="day" class="active">Today</button>
+        <button data-period="week">This week</button>
+        <button data-period="month">This month</button>
+      </div>
+
+      <div class="cards" id="reportCards"></div>
+
+      <div class="panel">
+        <h3>Sales by day</h3>
+        <div class="bars" id="reportBars"></div>
+      </div>
+
+      <div class="panel">
+        <h3>By product</h3>
+        <table>
+          <thead><tr><th>Product</th><th class="num">Qty sold</th><th class="num">Revenue</th><th class="num">Profit</th></tr></thead>
+          <tbody id="reportByProduct"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ======================= CONFIG ======================= */
+// Paste the URL you get after deploying Code.gs as a Web App ("Anyone" access).
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby5HqU4QQ7Da2kUUPYaMYOF__tW5xD0K2mD_LSE1w6KssN4IgKrAW6mZrRI4fS3XNvPJw/exec';
+
+/* ======================= helpers ======================= */
+function money(n){ return (Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:0, maximumFractionDigits:2}); }
+
+function showToast(msg, isError){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  clearTimeout(showToast._h);
+  showToast._h = setTimeout(()=> t.className='toast', 3200);
+}
+
+async function apiGet(action, params){
+  const url = new URL(WEB_APP_URL);
+  url.searchParams.set('action', action);
+  Object.entries(params||{}).forEach(([k,v])=>url.searchParams.set(k,v));
+  const res = await fetch(url.toString());
+  return res.json();
+}
+async function apiPost(body){
+  const res = await fetch(WEB_APP_URL, {
+    method:'POST',
+    headers: {'Content-Type':'text/plain;charset=utf-8'}, // avoids CORS preflight against Apps Script
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+/* ======================= nav ======================= */
+document.querySelectorAll('nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-'+btn.dataset.page).classList.add('active');
+    if(btn.dataset.page==='home') loadDashboard();
+    if(btn.dataset.page==='register') loadProducts();
+    if(btn.dataset.page==='sales') loadProducts();
+    if(btn.dataset.page==='reports') loadReports(currentPeriod);
+  });
+});
+
+/* ======================= home: hero carousel ======================= */
+const slides = [
+  {title:'Mtindi, fresh every batch', text:'MD, KOPO, MK and the 1L/3L/5L bottles.', color1:'#E2802B', color2:'#B23A63',
+   icon:'<circle cx="140" cy="110" r="70" fill="rgba(255,255,255,.15)"/><rect x="90" y="70" width="70" height="90" rx="10" fill="rgba(255,255,255,.35)"/>'},
+  {title:'Fino, boxed and by the piece', text:'Stocked for both wholesale and retail.', color1:'#4C8B5B', color2:'#2A2321',
+   icon:'<rect x="70" y="60" width="110" height="90" rx="8" fill="rgba(255,255,255,.3)"/><rect x="70" y="60" width="110" height="20" fill="rgba(255,255,255,.5)"/>'},
+  {title:'Cold juice, grab and go', text:'Juice boxes and single pieces, ready to sell.', color1:'#B23A63', color2:'#E2802B',
+   icon:'<rect x="110" y="50" width="40" height="110" rx="14" fill="rgba(255,255,255,.35)"/><rect x="118" y="40" width="24" height="18" rx="4" fill="rgba(255,255,255,.5)"/>'},
+  {title:'Yogurt cups for every size', text:'Small cups to family-size buckets.', color1:'#2A2321', color2:'#4C8B5B',
+   icon:'<path d="M90 60 h80 l-14 100 h-52 z" fill="rgba(255,255,255,.3)"/>'},
+  {title:'Buckets for bulk orders', text:'For customers buying in volume.', color1:'#E2802B', color2:'#4C8B5B',
+   icon:'<path d="M80 65 h90 l-12 95 h-66 z" fill="rgba(255,255,255,.3)"/><ellipse cx="125" cy="65" rx="45" ry="10" fill="rgba(255,255,255,.5)"/>'}
+];
+const hero = document.getElementById('hero');
+slides.forEach((s,i)=>{
+  const div = document.createElement('div');
+  div.className = 'slide' + (i===0?' active':'');
+  div.style.background = `linear-gradient(120deg, ${s.color1}, ${s.color2})`;
+  div.innerHTML = `<div class="txt"><h2>${s.title}</h2><p>${s.text}</p></div>
+    <svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg">${s.icon}</svg>`;
+  hero.appendChild(div);
+});
+const dots = document.createElement('div');
+dots.className = 'dots';
+slides.forEach((_,i)=>{
+  const d = document.createElement('div'); d.className='dot'+(i===0?' active':'');
+  dots.appendChild(d);
+});
+hero.appendChild(dots);
+let heroIdx = 0;
+setInterval(()=>{
+  const els = hero.querySelectorAll('.slide');
+  const dotEls = hero.querySelectorAll('.dot');
+  els[heroIdx].classList.remove('active'); dotEls[heroIdx].classList.remove('active');
+  heroIdx = (heroIdx+1) % els.length;
+  els[heroIdx].classList.add('active'); dotEls[heroIdx].classList.add('active');
+}, 2000);
+
+/* ======================= home: dashboard ======================= */
+async function loadDashboard(){
+  const r = await apiGet('dashboard');
+  if(!r.ok){ showToast(r.error||'Could not load dashboard', true); return; }
+  const d = r.data;
+  const cards = document.getElementById('homeCards');
+  cards.innerHTML = `
+    <div class="card"><div class="label">Products tracked</div><div class="value">${d.products.length}</div><div class="sub">${d.lowStock.length} running low</div></div>
+    <div class="card"><div class="label">Sold today</div><div class="value">${money(d.today.revenue)}</div><div class="sub">${d.today.qtySold} units · profit ${money(d.today.profit)}</div></div>
+    <div class="card"><div class="label">Sold this week</div><div class="value">${money(d.week.revenue)}</div><div class="sub">${d.week.qtySold} units · profit ${money(d.week.profit)}</div></div>
+    <div class="card"><div class="label">Sold this month</div><div class="value">${money(d.month.revenue)}</div><div class="sub">${d.month.qtySold} units · profit ${money(d.month.profit)}</div></div>`;
+
+  const lowBody = document.getElementById('lowStockBody');
+  lowBody.innerHTML = d.lowStock.length ? d.lowStock.map(p=>`
+    <tr><td>${p.name}</td><td class="num">${p.stock} ${p.unit}</td><td><span class="tag low">low</span></td></tr>`).join('')
+    : '<tr><td colspan="3" class="empty">Everything is well stocked.</td></tr>';
+}
+
+/* ======================= products (shared by register + sales pages) ======================= */
+let productsCache = [];
+async function loadProducts(){
+  const r = await apiGet('products');
+  if(!r.ok){ showToast(r.error||'Could not load products', true); return; }
+  productsCache = r.products;
+
+  const regSel = document.getElementById('regProduct');
+  const saleSel = document.getElementById('saleProduct');
+  regSel.innerHTML = productsCache.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  saleSel.innerHTML = productsCache.map(p=>`<option value="${p.id}">${p.name} — ${p.stock} in stock</option>`).join('');
+
+  const body = document.getElementById('productsBody');
+  body.innerHTML = productsCache.map(p=>`
+    <tr>
+      <td>${p.name}</td><td>${p.unit}</td>
+      <td class="num">${p.stock} ${p.stock < 5 ? '<span class="tag low">low</span>' : ''}</td>
+      <td class="num">${money(p.buyPrice)}</td>
+      <td class="num">${money(p.sellDiscount)}</td>
+      <td class="num">${money(p.sellNoDiscount)}</td>
+    </tr>`).join('');
+
+  onRegProductChange();
+}
+document.getElementById('regProduct').addEventListener('change', onRegProductChange);
+function onRegProductChange(){
+  const p = productsCache.find(p=>p.id === document.getElementById('regProduct').value);
+  if(p) document.getElementById('regUnit').value = p.unit;
+  updateRegPreview();
+}
+
+/* ======================= register stock ======================= */
+let usingNewProduct = false;
+document.getElementById('regNewProduct').addEventListener('click', ()=>{
+  usingNewProduct = !usingNewProduct;
+  const sel = document.getElementById('regProduct');
+  const btn = document.getElementById('regNewProduct');
+  if(usingNewProduct){
+    sel.outerHTML = `<input id="regProduct" placeholder="New product name" />`;
+    btn.textContent = 'Choose from existing list instead';
+  } else {
+    loadProducts();
+    btn.textContent = 'This is a new product, not on the list';
+  }
+});
+
+['regQty','regSellDisc','regSellFull'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', updateRegPreview);
+});
+function updateRegPreview(){
+  const qty = Number(document.getElementById('regQty').value)||0;
+  const disc = Number(document.getElementById('regSellDisc').value)||0;
+  const full = Number(document.getElementById('regSellFull').value)||0;
+  document.getElementById('prevDisc').textContent = money(qty*disc);
+  document.getElementById('prevFull').textContent = money(qty*full);
+}
+
+document.getElementById('regSubmit').addEventListener('click', async ()=>{
+  const el = document.getElementById('regProduct');
+  const isNew = el.tagName === 'INPUT';
+  const payload = {
+    action:'registerStock',
+    productId: isNew ? null : el.value,
+    name: isNew ? el.value.trim() : undefined,
+    unit: document.getElementById('regUnit').value.trim(),
+    qty: Number(document.getElementById('regQty').value),
+    buyPrice: Number(document.getElementById('regBuy').value),
+    sellDiscount: Number(document.getElementById('regSellDisc').value),
+    sellNoDiscount: Number(document.getElementById('regSellFull').value),
+    staff: document.getElementById('staffName').value.trim()
+  };
+  if(!payload.qty || (!payload.productId && !payload.name)){
+    showToast('Fill in the product and a quantity greater than zero.', true); return;
+  }
+  const btn = document.getElementById('regSubmit');
+  btn.setAttribute('disabled','');
+  const r = await apiPost(payload);
+  btn.removeAttribute('disabled');
+  if(!r.ok){ showToast(r.error||'Could not save stock', true); return; }
+  showToast(`Saved ${payload.qty} × ${r.product.name} to stock.`);
+  ['regQty','regBuy','regSellDisc','regSellFull'].forEach(id=>document.getElementById(id).value='');
+  updateRegPreview();
+  usingNewProduct = false;
+  document.getElementById('regNewProduct').textContent = 'This is a new product, not on the list';
+  loadProducts();
+});
+
+/* ======================= sales ======================= */
+let customerType = 'wholesale';
+let cart = [];
+document.getElementById('typeWholesale').addEventListener('click', ()=>setCustomerType('wholesale'));
+document.getElementById('typeRetail').addEventListener('click', ()=>setCustomerType('retail'));
+function setCustomerType(t){
+  customerType = t;
+  document.getElementById('typeWholesale').classList.toggle('active', t==='wholesale');
+  document.getElementById('typeRetail').classList.toggle('active', t==='retail');
+}
+
+document.getElementById('addToCart').addEventListener('click', ()=>{
+  const id = document.getElementById('saleProduct').value;
+  const qty = Number(document.getElementById('saleQty').value);
+  const p = productsCache.find(p=>p.id===id);
+  if(!p || !qty || qty<=0){ showToast('Choose a product and a quantity.', true); return; }
+  const unitPrice = customerType==='wholesale' ? p.sellDiscount : p.sellNoDiscount;
+  cart.push({productId:p.id, name:p.name, qty, customerType, unitPrice});
+  renderCart();
+});
+
+function renderCart(){
+  const body = document.getElementById('cartBody');
+  if(!cart.length){
+    body.innerHTML = '<tr><td colspan="5" class="empty">Cart is empty</td></tr>';
+  } else {
+    body.innerHTML = cart.map((c,i)=>`
+      <tr>
+        <td>${c.name} <span class="tag ${c.customerType==='wholesale'?'ok':'low'}" style="background:${c.customerType==='wholesale'?'#FBEEE0':'#F3E3EA'};color:${c.customerType==='wholesale'?'var(--accent-ink)':'var(--berry)'}">${c.customerType}</span></td>
+        <td class="num">${c.qty}</td>
+        <td class="num">${money(c.unitPrice)}</td>
+        <td class="num">${money(c.unitPrice*c.qty)}</td>
+        <td><button class="btn btn-ghost btn-danger" data-i="${i}" style="padding:4px 10px;">Remove</button></td>
+      </tr>`).join('');
+    body.querySelectorAll('button[data-i]').forEach(b=>{
+      b.addEventListener('click', ()=>{ cart.splice(Number(b.dataset.i),1); renderCart(); });
+    });
+  }
+  const total = cart.reduce((s,c)=>s+c.unitPrice*c.qty,0);
+  document.getElementById('cartTotal').textContent = money(total);
+}
+
+document.getElementById('checkoutBtn').addEventListener('click', async ()=>{
+  if(!cart.length){ showToast('Add at least one item to the cart.', true); return; }
+  const payload = {
+    action:'recordSale',
+    staff: document.getElementById('staffName').value.trim(),
+    items: cart.map(c=>({productId:c.productId, qty:c.qty, customerType:c.customerType}))
+  };
+  const btn = document.getElementById('checkoutBtn');
+  btn.setAttribute('disabled','');
+  const r = await apiPost(payload);
+  btn.removeAttribute('disabled');
+  if(!r.ok){ showToast(r.error||'Sale failed', true); return; }
+  showToast(`Sale complete — total ${money(r.total)}.`);
+  document.getElementById('lastReceipt').innerHTML = `
+    <div class="panel" style="margin-bottom:0;">
+      <strong>Receipt ${r.saleId}</strong>
+      <table>${r.lines.map(l=>`<tr><td>${l.name}</td><td class="num">${l.qty}</td><td class="num">${money(l.lineTotal)}</td></tr>`).join('')}</table>
+      <div class="cart-total"><span>Total</span><span class="value">${money(r.total)}</span></div>
+    </div>`;
+  cart = [];
+  renderCart();
+  loadProducts();
+});
+
+/* ======================= reports ======================= */
+let currentPeriod = 'day';
+document.querySelectorAll('.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPeriod = btn.dataset.period;
+    loadReports(currentPeriod);
+  });
+});
+
+async function loadReports(period){
+  const r = await apiGet('reports', {period});
+  if(!r.ok){ showToast(r.error||'Could not load reports', true); return; }
+  const d = r.data;
+  document.getElementById('reportRange').textContent = `${d.rangeStart} → ${d.rangeEnd}`;
+
+  document.getElementById('reportCards').innerHTML = `
+    <div class="card"><div class="label">Revenue (price used)</div><div class="value">${money(d.revenue)}</div></div>
+    <div class="card"><div class="label">Revenue if no discount</div><div class="value">${money(d.revenueIfNoDiscount)}</div></div>
+    <div class="card"><div class="label">Discount given</div><div class="value">${money(d.discountGiven)}</div></div>
+    <div class="card"><div class="label">Profit</div><div class="value">${money(d.profit)}</div></div>`;
+
+  const bars = document.getElementById('reportBars');
+  const max = Math.max(1, ...d.daily.map(x=>x.revenue));
+  bars.innerHTML = d.daily.length ? d.daily.map(x=>`
+    <div class="bar-col">
+      <div class="bar" style="height:${Math.max(2, x.revenue/max*100)}%"></div>
+      <div class="bar-label">${x.date.slice(5)}</div>
+    </div>`).join('') : '<div class="empty">No sales recorded in this period yet.</div>';
+
+  const byP = document.getElementById('reportByProduct');
+  byP.innerHTML = d.byProduct.length ? d.byProduct.map(p=>`
+    <tr><td>${p.name}</td><td class="num">${p.qty}</td><td class="num">${money(p.revenue)}</td><td class="num">${money(p.profit)}</td></tr>`).join('')
+    : '<tr><td colspan="4" class="empty">No sales recorded in this period yet.</td></tr>';
+}
+
+/* ======================= init ======================= */
+loadDashboard();
+loadProducts();
+loadReports(currentPeriod);
+</script>
+</body>
+</html>
