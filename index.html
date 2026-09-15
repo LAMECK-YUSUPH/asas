@@ -158,6 +158,57 @@
   .toast.show{ opacity:1; transform:translateY(0); }
   .toast.error{ background:var(--danger); }
 
+  
+  /* ---- Company header ---- */
+/* ---- Company header (centered) ---- */
+/* ---- Company header (logo left + right, text centered) ---- */
+.site-header{
+  position:relative; overflow:hidden;
+  background:linear-gradient(115deg, var(--accent-ink) 0%, var(--accent) 55%, var(--berry) 100%);
+  border-radius:14px; padding:20px 22px; margin-bottom:22px;
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  color:#fff; box-shadow:0 6px 18px rgba(122,62,12,0.18);
+}
+.site-header::after{
+  content:''; position:absolute; right:-40px; top:-60px; width:220px; height:220px;
+  border-radius:50%; background:rgba(255,255,255,0.08);
+}
+.logo-tile{
+  width:68px; height:68px; flex-shrink:0; border-radius:16px; background:#fff;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,0.18); cursor:pointer; position:relative; z-index:2;
+}
+.logo-tile img{ width:100%; height:100%; object-fit:contain; }
+.logo-tile .initials{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.25rem; color:var(--accent); }
+.header-main{ flex:1; min-width:0; text-align:center; position:relative; z-index:2; }
+.header-main h1{ margin:0; font-size:1.5rem; line-height:1.2; }
+.header-main .tagline{ margin:4px 0 0; font-size:0.85rem; opacity:0.9; }
+.contact-strip{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; justify-content:center; }
+.contact-strip a, .contact-strip span{
+  display:inline-flex; align-items:center; gap:6px; text-decoration:none;
+  background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.22);
+  color:#fff; font-size:0.8rem; padding:5px 11px; border-radius:999px; white-space:nowrap;
+}
+.contact-strip a:hover{ background:rgba(255,255,255,0.28); }
+.contact-strip svg{ width:13px; height:13px; flex-shrink:0; }
+#logoPicker{ display:none; }
+
+@media (max-width:800px){
+  .site-header{ padding:14px 12px; gap:10px; border-radius:12px; margin-bottom:16px; }
+  .logo-tile{ width:46px; height:46px; border-radius:11px; }
+  .logo-tile .initials{ font-size:0.9rem; }
+  .header-main h1{ font-size:1.05rem; }
+  .header-main .tagline{ font-size:0.75rem; }
+  .contact-strip{ gap:6px; margin-top:8px; }
+  .contact-strip a, .contact-strip span{ font-size:0.7rem; padding:4px 8px; }
+}
+
+@media (max-width:420px){
+  .logo-tile{ width:40px; height:40px; }
+  .contact-strip a, .contact-strip span{ font-size:0.66rem; }
+}
+  
+  
   /* ---- Tablet ---- */
   @media (max-width:900px){
     main{ max-width:100%; }
@@ -230,6 +281,11 @@
   @media (prefers-reduced-motion: reduce){
     .slide{ transition:none; }
   }
+
+  /* ---- Editable stock cell ---- */
+  .stock-edit{ display:flex; align-items:center; justify-content:flex-end; gap:6px; }
+  .stock-edit input{ width:70px; padding:5px 6px; font-size:0.85rem; text-align:right; }
+  .stock-edit .btn{ padding:5px 10px; font-size:0.78rem; }
 </style>
 </head>
 <body>
@@ -249,6 +305,28 @@
   </aside>
 
   <main>
+
+    <header class="site-header">
+  <div class="logo-tile" title="Click to change logo">
+    <img class="companyLogo" alt="Company logo" style="display:none" />
+    <span class="initials"></span>
+  </div>
+
+  <input type="file" id="logoPicker" accept="image/*" />
+
+  <div class="header-main">
+    <h1 id="companyName">ASAS-SONGEA</h1>
+    <p class="tagline" id="companyTagline">Dairy &amp; beverages · wholesale and retail</p>
+    <div class="contact-strip" id="contactStrip"></div>
+  </div>
+
+  <div class="logo-tile" title="Click to change logo">
+    <img class="companyLogo" alt="Company logo" style="display:none" />
+    <span class="initials"></span>
+  </div>
+</header>
+
+
     <!-- HOME -->
     <section id="page-home" class="page active">
       <div class="hero" id="hero"></div>
@@ -316,8 +394,8 @@
         <h3>Current stock levels</h3>
         <div class="table-scroll">
         <table>
-          <thead><tr><th>Product</th><th>Unit</th><th class="num">Stock</th><th class="num">Buy price</th><th class="num">Sell (disc.)</th><th class="num">Sell (full)</th></tr></thead>
-          <tbody id="productsBody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+          <thead><tr><th>Product</th><th>Unit</th><th class="num">Stock</th><th class="num">Buy price</th><th class="num">Sell (disc.)</th><th class="num">Sell (full)</th><th class="num">Stock value (cost)</th></tr></thead>
+          <tbody id="productsBody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
         </table>
         </div>
       </div>
@@ -410,6 +488,67 @@
 /* ======================= CONFIG ======================= */
 // Paste the URL you get after deploying Code.gs as a Web App ("Anyone" access).
 const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby5HqU4QQ7Da2kUUPYaMYOF__tW5xD0K2mD_LSE1w6KssN4IgKrAW6mZrRI4fS3XNvPJw/exec';
+
+
+/* ======================= company header ======================= */
+/* ======================= company header ======================= */
+const COMPANY = {
+  name: 'ASAS-SONGEA',
+  tagline: 'Dairy & beverages · wholesale and retail',
+  email: 'info@asas-songea.co.tz',
+  phone: '+255 000 000 000',
+  location: 'Songea, Ruvuma, Tanzania',
+  logoFile: 'images/logo.png'
+};
+
+(function initHeader(){
+  document.getElementById('companyName').textContent = COMPANY.name;
+  document.getElementById('companyTagline').textContent = COMPANY.tagline;
+
+  const initialsText = COMPANY.name.replace(/[^A-Za-z ]/g,' ').trim()
+    .split(/\s+/).map(w=>w[0]).join('').slice(0,3).toUpperCase();
+  document.querySelectorAll('.logo-tile .initials')
+    .forEach(el=> el.textContent = initialsText);
+
+  const ico = {
+    mail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>',
+    phone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.4 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>',
+    pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+  };
+  document.getElementById('contactStrip').innerHTML = `
+    <a href="mailto:${COMPANY.email}">${ico.mail}${COMPANY.email}</a>
+    <a href="tel:${COMPANY.phone.replace(/\s/g,'')}">${ico.phone}${COMPANY.phone}</a>
+    <span>${ico.pin}${COMPANY.location}</span>`;
+
+  function setLogo(src){
+    document.querySelectorAll('.logo-tile').forEach(tile=>{
+      const img = tile.querySelector('img');
+      const ini = tile.querySelector('.initials');
+      img.onerror = ()=>{ img.style.display='none'; ini.style.display=''; };
+      img.onload  = ()=>{ img.style.display='';      ini.style.display='none'; };
+      img.src = src;
+    });
+  }
+  setLogo(localStorage.getItem('asas_logo') || COMPANY.logoFile);
+
+  const picker = document.getElementById('logoPicker');
+  document.querySelectorAll('.logo-tile').forEach(tile=>{
+    tile.addEventListener('click', ()=>picker.click());
+  });
+  picker.addEventListener('change', ()=>{
+    const f = picker.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{ localStorage.setItem('asas_logo', reader.result); }catch(e){ showToast('Logo too large to save.', true); }
+      setLogo(reader.result);
+      showToast('Logo updated.');
+      picker.value = '';
+    };
+    reader.readAsDataURL(f);
+  });
+})();
+
 
 /* ======================= helpers ======================= */
 function money(n){ return (Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:0, maximumFractionDigits:2}); }
@@ -520,18 +659,62 @@ async function loadProducts(){
   regSel.innerHTML = productsCache.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
   saleSel.innerHTML = productsCache.map(p=>`<option value="${p.id}">${p.name} — ${p.stock} in stock</option>`).join('');
 
+  renderProductsTable();
+  onRegProductChange();
+}
+
+function renderProductsTable(){
   const body = document.getElementById('productsBody');
-  body.innerHTML = productsCache.map(p=>`
+  body.innerHTML = productsCache.map(p=>{
+    const stockValue = (Number(p.stock)||0) * (Number(p.buyPrice)||0);
+    return `
     <tr>
       <td>${p.name}</td><td>${p.unit}</td>
-      <td class="num">${p.stock} ${p.stock < 5 ? '<span class="tag low">low</span>' : ''}</td>
+      <td class="num">
+        <div class="stock-edit">
+          <input type="number" min="0" step="1" value="${p.stock}" id="stockInput-${p.id}" data-id="${p.id}" />
+          <button class="btn btn-ghost stock-save" data-id="${p.id}">Save</button>
+        </div>
+        ${p.stock < 5 ? '<span class="tag low">low</span>' : ''}
+      </td>
       <td class="num">${money(p.buyPrice)}</td>
       <td class="num">${money(p.sellDiscount)}</td>
       <td class="num">${money(p.sellNoDiscount)}</td>
-    </tr>`).join('');
+      <td class="num">${money(stockValue)}</td>
+    </tr>`;
+  }).join('');
 
-  onRegProductChange();
+  body.querySelectorAll('.stock-save').forEach(btn=>{
+    btn.addEventListener('click', ()=>saveStockEdit(btn.dataset.id));
+  });
+  body.querySelectorAll('.stock-edit input').forEach(input=>{
+    input.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter') saveStockEdit(input.dataset.id);
+    });
+  });
 }
+
+async function saveStockEdit(productId){
+  const input = document.getElementById('stockInput-'+productId);
+  const newStock = Number(input.value);
+  if(!Number.isFinite(newStock) || newStock < 0){
+    showToast('Enter a valid stock quantity (0 or more).', true);
+    return;
+  }
+  const btn = document.querySelector(`.stock-save[data-id="${productId}"]`);
+  if(btn) btn.setAttribute('disabled','');
+  const r = await apiPost({
+    action:'updateStock',
+    productId,
+    stock:newStock,
+    staff: document.getElementById('staffName').value.trim()
+  });
+  if(btn) btn.removeAttribute('disabled');
+  if(!r.ok){ showToast(r.error||'Could not update stock', true); return; }
+  showToast('Stock updated.');
+  loadProducts();
+}
+
 document.getElementById('regProduct').addEventListener('change', onRegProductChange);
 function onRegProductChange(){
   const p = productsCache.find(p=>p.id === document.getElementById('regProduct').value);
