@@ -785,12 +785,12 @@ const SHOPS = {
   retail: {
     label: 'Retail counter',
     page: 'CJP_Retail_Frontend_Updated.html',
-    url: 'https://script.google.com/macros/s/AKfycbwBxbYs5R3U0yAtZwk6SLo-ErLBzWjymaknqjxKHX6FY_OXFtfFVgdsVIQQ3b7NiCSq/exec'
+    url: 'https://script.google.com/macros/s/AKfycbzulG92ldMJk234GyGDwdYjeXWypZKoAUXYB69tGc5OsLfnya6HBGVAXiiZcN-vxnDJ6A/exec'
   },
   wholesale: {
     label: 'Wholesale store',
     page: 'CJP_Wholesale_Frontend_Updated.html',
-    url: 'https://script.google.com/macros/s/AKfycbzUCQrrOypi7-JzVjMOWs7Wfn5CTLuzmo1ONlAZrWZi4HMIaTKKOo9oRBPujzS997o9fw/exec'
+    url: 'https://script.google.com/macros/s/AKfycbzAe5LuFBaVJD_dFAZm9qg4guE5rUClFib78kSXLGJHz47R7_Ef8fagUVFcHAdOXZLz/exec'
   }
 };
 
@@ -1037,22 +1037,56 @@ checkServices();
 setInterval(checkServices, 120000);
 
 const DEVELOPER_NAME = 'lameck';
-const ACCESS_NOTICE_KEY = 'cjp_developer_access_notice';
+const DEVELOPER_PHONE = '+255744065662';
+let developerAccessState = null;
+let developerAccessLoading = false;
 
 function isDeveloper(session){
   return !!(session && session.staffName && String(session.staffName).trim().toLowerCase() === DEVELOPER_NAME);
 }
-function readAccessNotice(){
-  try{ return JSON.parse(localStorage.getItem(ACCESS_NOTICE_KEY)) || null; }catch(e){ return null; }
-}
-function writeAccessNotice(v){
-  try{ localStorage.setItem(ACCESS_NOTICE_KEY, JSON.stringify(v)); }catch(e){}
-}
-function removeAccessNotice(){ try{ localStorage.removeItem(ACCESS_NOTICE_KEY); }catch(e){} }
+function readAccessNotice(){ return developerAccessState || null; }
+function writeAccessNotice(v){ developerAccessState = v || null; }
+function removeAccessNotice(){ developerAccessState = null; }
 function formatDeadline(ts){
   if(!ts) return 'No access deadline is set.';
   return 'Access deadline: ' + new Date(ts).toLocaleString();
 }
+
+async function fetchDeveloperAccess(session){
+  if(!session || !session.tokens) return null;
+  if(developerAccessLoading) return developerAccessState;
+  developerAccessLoading = true;
+  try{
+    const keys = Object.keys(SHOPS).filter(k=>session.tokens[k]);
+    if(!keys.length) return null;
+    const results = await Promise.all(keys.map(async k=>{
+      try{
+        const r = await post(k, {action:'developerAccess', token:session.tokens[k]});
+        return r && r.ok ? r.data : null;
+      }catch(e){ return null; }
+    }));
+    const valid = results.filter(Boolean);
+    if(!valid.length) return developerAccessState;
+
+    // Fail closed: if either shop has an active/expired restriction, keep the
+    // most restrictive deadline and any available message. This prevents one
+    // backend being out of sync from accidentally reopening access.
+    const withExpiry = valid.filter(v=>Number(v.expiresAt)>0);
+    const expiresAt = withExpiry.length ? Math.min(...withExpiry.map(v=>Number(v.expiresAt))) : 0;
+    const source = valid.find(v=>v.message) || valid[0];
+    developerAccessState = {
+      message: source.message || '',
+      expiresAt,
+      updatedAt: Math.max(...valid.map(v=>Number(v.updatedAt)||0)),
+      updatedBy: source.updatedBy || '',
+      developerPhone: source.developerPhone || DEVELOPER_PHONE
+    };
+    return developerAccessState;
+  }finally{
+    developerAccessLoading = false;
+  }
+}
+
 function updatePublicAccessNotice(session){
   const n = readAccessNotice();
   const notice = $('publicNotice');
@@ -1064,25 +1098,36 @@ function updatePublicAccessNotice(session){
   const hasMessage = !!(n && n.message);
   notice.classList.toggle('show', hasMessage);
   if(hasMessage){
-    $('publicNoticeTitle').textContent = expired ? 'Development payment notice — access expired' : 'Development payment notice';
+    $('publicNoticeTitle').textContent = expired ? 'Payment / development notice — access expired' : 'Payment / development notice';
     message.textContent = n.message;
-    time.textContent = expired ? 'The time provided has ended. ' + formatDeadline(n.expiresAt) : formatDeadline(n.expiresAt);
+    time.textContent = expired
+      ? 'The time provided has ended. ' + formatDeadline(n.expiresAt)
+      : formatDeadline(n.expiresAt);
   }
-  locked.classList.toggle('show', expired && !isDeveloper(session));
-  if(expired && !isDeveloper(session)) lockedText.textContent = n.message || 'Please contact the developer to restore access.';
+  const dev = isDeveloper(session);
+  locked.classList.toggle('show', expired && !dev);
+  if(expired && !dev){
+    lockedText.textContent = (n?.message || 'System access has expired.') + ' Call developer ' + (n?.developerPhone || DEVELOPER_PHONE) + ' to restore access.';
+  }
   [['retail','goRetail','retailState'],['wholesale','goWholesale','wholesaleState']].forEach(([k,linkId,stateId])=>{
     const link=$(linkId), state=$(stateId);
     const tokenOk=!!(session && session.tokens && session.tokens[k]);
-    const allowed = tokenOk && (!expired || isDeveloper(session));
+    const allowed = tokenOk && (!expired || dev);
     link.classList.toggle('off', !allowed);
     state.textContent = allowed ? 'open' : (expired ? 'locked' : 'unavailable');
     link.setAttribute('aria-disabled', String(!allowed));
   });
   return expired;
 }
+
+async function refreshPublicAccessNotice(session){
+  await fetchDeveloperAccess(session);
+  return updatePublicAccessNotice(session);
+}
+
 const developerScrollBtn = $('developerScrollBtn');
 if(developerScrollBtn){ developerScrollBtn.addEventListener('click',()=>{ const panel=$('developerPanel'); if(panel){ panel.hidden=false; panel.scrollIntoView({behavior:'smooth',block:'start'}); } }); }
-function loadDeveloperPanel(session){
+async function loadDeveloperPanel(session){
   const panel=$('developerPanel');
   const scrollBtn=$('developerScrollBtn');
   const dev=isDeveloper(session);
@@ -1090,13 +1135,15 @@ function loadDeveloperPanel(session){
   if(scrollBtn) scrollBtn.hidden=!dev;
   panel.setAttribute('aria-hidden', String(!dev));
   if(!dev) return;
+  await fetchDeveloperAccess(session);
   const n=readAccessNotice();
   $('developerMessage').value=n?.message || '';
   $('developerDuration').value='';
   $('developerUnit').value='minutes';
   $('developerStatus').textContent=n ? ('Saved. ' + formatDeadline(n.expiresAt)) : 'No notice or time limit is currently saved.';
 }
-$('saveDeveloperNotice').addEventListener('click', ()=>{
+
+$('saveDeveloperNotice').addEventListener('click', async ()=>{
   const session=getSession();
   if(!isDeveloper(session)){ showToast('Developer access required.', true); return; }
   const message=$('developerMessage').value.trim();
@@ -1104,21 +1151,46 @@ $('saveDeveloperNotice').addEventListener('click', ()=>{
   const unit=$('developerUnit').value;
   if(!message){ showToast('Enter a message for users.', true); return; }
   if(!Number.isFinite(amount) || amount<=0){ showToast('Enter a time limit greater than zero.', true); return; }
-  const multiplier = unit==='days' ? 86400000 : (unit==='hours' ? 3600000 : 60000);
-  const expiresAt=Date.now()+amount*multiplier;
-  writeAccessNotice({message, expiresAt, updatedAt:Date.now(), updatedBy:session.staffName});
-  $('developerStatus').textContent='Saved. ' + formatDeadline(expiresAt);
-  updatePublicAccessNotice(session);
-  showToast('Saved. Other users will see the message and will be locked out when the selected time expires.');
+  const btn=$('saveDeveloperNotice');
+  btn.disabled=true;
+  try{
+    const keys=Object.keys(SHOPS).filter(k=>session.tokens[k]);
+    const results=await Promise.all(keys.map(async k=>{
+      try{return await post(k,{action:'saveDeveloperAccess',token:session.tokens[k],message,duration:amount,unit});}
+      catch(e){return {ok:false,error:'offline'};}
+    }));
+    if(!results.length || results.some(r=>!r || !r.ok)){
+      showToast('The developer setting was not saved to all shop backends. Check internet and try again.', true);
+      return;
+    }
+    await refreshPublicAccessNotice(session);
+    const n=readAccessNotice();
+    $('developerStatus').textContent='Saved on both shop backends. ' + formatDeadline(n?.expiresAt);
+    showToast('Saved. Other users will see the payment message and will be locked when the selected time expires.');
+  }finally{ btn.disabled=false; }
 });
-$('clearDeveloperNotice').addEventListener('click', ()=>{
+
+$('clearDeveloperNotice').addEventListener('click', async ()=>{
   const session=getSession();
   if(!isDeveloper(session)){ showToast('Developer access required.', true); return; }
-  removeAccessNotice();
-  $('developerMessage').value=''; $('developerDuration').value='';
-  $('developerStatus').textContent='Notice and access limit cleared.';
-  updatePublicAccessNotice(session);
-  showToast('Developer notice cleared.');
+  const btn=$('clearDeveloperNotice');
+  btn.disabled=true;
+  try{
+    const keys=Object.keys(SHOPS).filter(k=>session.tokens[k]);
+    const results=await Promise.all(keys.map(async k=>{
+      try{return await post(k,{action:'clearDeveloperAccess',token:session.tokens[k]});}
+      catch(e){return {ok:false,error:'offline'};}
+    }));
+    if(!results.length || results.some(r=>!r || !r.ok)){
+      showToast('Could not unlock all shop backends. Check internet and try again.', true);
+      return;
+    }
+    removeAccessNotice();
+    $('developerMessage').value=''; $('developerDuration').value='';
+    $('developerStatus').textContent='Notice and access limit cleared on both shop backends.';
+    updatePublicAccessNotice(session);
+    showToast('Developer notice cleared. Other users can sign in again.');
+  }finally{ btn.disabled=false; }
 });
 
 /* ======================= sign in (both shops at once) ======================= */
@@ -1201,6 +1273,10 @@ function enterChooser(session){
   loadDeveloperPanel(session);
   if(isDeveloper(session)) showToast('Developer mode active: message and time controls are shown below your name.');
   updatePublicAccessNotice(session);
+  refreshPublicAccessNotice(session).then(()=>{
+    const expired = updatePublicAccessNotice(session);
+    if(expired && !isDeveloper(session)) lockOutExpiredSession(session);
+  });
   applyBackground();
   step('stepChoose');
 }
@@ -1215,28 +1291,40 @@ $('signOutBtn').addEventListener('click', ()=>{
   showToast('Signed out.');
 });
 
+function lockOutExpiredSession(session){
+  if(isDeveloper(session)) return;
+  clearSession();
+  $('sessionPill').hidden=true;
+  $('staffUser').value='';
+  $('staffPass').value='';
+  step('stepLogin');
+  showToast('Time limit ended. Call developer ' + DEVELOPER_PHONE + ' to restore access.', true);
+}
 ['goRetail','goWholesale'].forEach(id=>{
-  $(id).addEventListener('click', e=>{
+  $(id).addEventListener('click', async e=>{
     const s=getSession();
-    const n=readAccessNotice();
-    if(n?.expiresAt && Date.now()>=n.expiresAt && !isDeveloper(s)){
+    if(!s) return;
+    const expired=updatePublicAccessNotice(s);
+    if(expired && !isDeveloper(s)){
       e.preventDefault();
+      await refreshPublicAccessNotice(s);
       updatePublicAccessNotice(s);
-      showToast('System access has expired. Please contact the developer.', true);
+      showToast('System access has expired. Call developer ' + DEVELOPER_PHONE + '.', true);
     }
   });
 });
-setInterval(()=>{
+let accessRefreshCounter=0;
+setInterval(async ()=>{
   const s=getSession();
   if(!s || !hasAnyToken(s)) return;
+  accessRefreshCounter++;
   const expired=updatePublicAccessNotice(s);
-  if(expired && !isDeveloper(s)){
-    clearSession();
-    $('sessionPill').hidden=true;
-    $('staffUser').value='';
-    $('staffPass').value='';
-    step('stepLogin');
-    showToast('Time limit ended. System access is now closed.', true);
+  if(expired && !isDeveloper(s)) lockOutExpiredSession(s);
+  // Refresh from Google Sheets regularly so changes made from another device
+  // reach this device without relying on localStorage.
+  if(accessRefreshCounter % 10 === 0){
+    const live=await refreshPublicAccessNotice(s);
+    if(live && !isDeveloper(s)) lockOutExpiredSession(s);
   }
 }, 1000);
 
